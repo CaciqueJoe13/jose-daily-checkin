@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17324d">
+<title>Jose's Daily Check-In</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#66727d;--accent:#17324d;--accent2:#2d6a4f;--line:#dfe4e8;--danger:#a33a3a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:var(--accent);color:white;padding:24px 18px 20px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px #0002}
+h1{margin:0;font-size:25px}.date{opacity:.82;margin-top:5px;font-size:14px}
+main{max-width:720px;margin:auto;padding:14px 14px 50px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 1px 3px #0000000b}
+h2{font-size:18px;margin:0 0 12px}.sub{color:var(--muted);font-size:13px;margin-top:-7px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:5px}
+input,textarea,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff;color:var(--ink)}
+textarea{min-height:70px;resize:vertical}.check{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid #edf0f2}.check:last-child{border-bottom:0}
+.check input{width:22px;height:22px;accent-color:var(--accent2);flex:none}.check span{font-size:16px}
+.row{display:flex;gap:9px;align-items:center}.row>*{flex:1}
+button{border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;cursor:pointer}
+button.secondary{background:#e9eef2;color:var(--ink)}button.green{background:var(--accent2)}button.danger{background:var(--danger)}button:disabled{opacity:.5;cursor:wait}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{background:#f7f9fa;border-radius:12px;padding:12px}.stat b{font-size:20px;display:block}.stat small{color:var(--muted)}
+.meal{border-top:1px solid var(--line);padding:12px 0}.meal:first-of-type{border-top:0}.meal h3{margin:0 0 9px;font-size:15px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.tiny{font-size:12px;color:var(--muted)}.status{padding:10px 12px;border-radius:10px;background:#edf4f0;color:#214f3d;font-size:14px;margin:10px 0}.status.error{background:#fff0f0;color:#8d2626}
+.hidden{display:none!important}footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media(max-width:460px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.row{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<header><h1>Jose's Daily Check-In</h1><div class="date" id="today"></div></header>
+<main>
+<section class="card" id="loginCard">
+<h2>🔐 Sign in to your private check-in</h2>
+<p class="sub">Your entries are saved to your Supabase account, so you can access them on your computer and iPhone.</p>
+<div id="setupArea">
+<label for="publishableKey">Supabase publishable key</label>
+<input id="publishableKey" autocomplete="off" placeholder="sb_publishable_…">
+<p class="tiny">Enter the publishable key from Supabase. Never enter a secret or service_role key. This key is saved only in this browser.</p>
+<button id="connectBtn">Connect</button>
+</div>
+<div id="signinArea" class="hidden">
+<label for="email">Email</label><input id="email" type="email" autocomplete="username" placeholder="Your email">
+<label for="password" style="margin-top:10px">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password">
+<div class="actions" style="margin-top:12px"><button id="signInBtn">Sign in</button><button class="secondary" id="changeKeyBtn">Change key</button></div>
+</div>
+<div id="authStatus" aria-live="polite"></div>
+</section>
+<div id="appArea" class="hidden">
+<section class="card"><div class="row"><div><strong id="signedInAs"></strong><div class="tiny">Private account</div></div><button class="secondary" id="signOutBtn">Sign out</button></div><div id="cloudStatus" class="status">Connected. Load or save your check-in.</div>
+<div class="grid"><div><label for="entryDate">Check-in date</label><input id="entryDate" type="date"></div><div style="display:flex;align-items:end"><button id="loadBtn" class="secondary" style="width:100%">Load date</button></div></div></section>
+<section class="card"><h2>🌅 Morning Check-In</h2><div class="grid"><div><label>Morning weight (lb)</label><input id="weight" type="number" step="0.1" placeholder="lbs"></div><div><label>Starting weight (lb)</label><input id="startWeight" type="number" step="0.1" placeholder="lbs"></div></div><div id="weightLoss" style="margin-top:10px"></div><div id="morningChecks"></div></section>
+<section class="card"><h2>💊 Medications</h2><div class="sub">Your medications are pre-sorted into pouches. Record whether you took each pouch.</div><div id="pouchChecks"></div></section>
+<section class="card"><h2>🏃 Exercise</h2><div class="sub">Check each activity and enter how many minutes you did.</div><div id="exerciseChecks"></div><div class="stat" style="margin-top:10px"><b id="exerciseTotal">0 min</b><small>Total exercise today</small></div></section>
+<section class="card"><h2>🍽️ Meals & Nutrition</h2><div class="sub">Enter food descriptions and estimated or label calories and protein.</div><div id="meals"></div></section>
+<section class="card"><h2>🌙 Evening Check-In</h2><div id="eveningChecks"></div><div style="margin-top:10px"><label for="reflection">📝 Daily reflection</label><textarea id="reflection" placeholder="How did I do today? What am I proud of?"></textarea></div></section>
+<section class="card"><h2>📊 Today's Summary</h2><div class="stats"><div class="stat"><b id="calTotal">0</b><small>Calories</small></div><div class="stat"><b id="proteinTotal">0 g</b><small>Protein</small></div><div class="stat"><b id="completion">0%</b><small>Checklist complete</small></div><div class="stat"><b id="historyCount">0</b><small>Saved check-ins</small></div></div></section>
+<section class="card"><h2>⚙️ Settings</h2><div class="grid"><div><label>Calorie target</label><input id="calGoal" type="number" value="2000"></div><div><label>Protein target (g)</label><input id="proteinGoal" type="number" value="120"></div></div><p class="tiny">Use targets recommended by your clinician when they depend on your personal health situation.</p><div class="actions"><button class="green" id="saveBtn">Save today's check-in</button><button class="secondary" id="resetBtn">Reset today's checkboxes</button><button class="secondary" id="historyBtn">Refresh saved history</button></div><div id="saveStatus" aria-live="polite"></div></section>
+<section class="card"><h2>🗓️ Saved Check-ins</h2><p class="sub">Choose a saved date to load it. Your entries are private to your signed-in account.</p><div id="historyList" class="tiny">Sign in to view saved dates.</div></section>
+<footer>Version 5 • Cloud-synced when signed in and saved. Sign out when using a shared device.</footer>
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://hpavxqdlogbjojydhnhg.supabase.co";
+const KEY_STORAGE="joseDailyCheckin_publishableKey";
+let supabaseClient=null,currentUser=null,d={};
+const defaultMorning=["🧘 Meditation","🙏 Prayer"];
+const defaultEvening=["🧘 Meditation","📚 Education / learning","📖 Reading","🙏 Prayer","📅 Review tomorrow","📝 Prepare for tomorrow"];
+const exercises=["Treadmill","Chair Yoga","Tai Chi","Supernatural"];
+const meals=["Breakfast","Lunch","Dinner","Snacks"];
+const $=id=>document.getElementById(id);
+const todayISO=()=>{const n=new Date();return new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function setStatus(id,msg,error=false){$(id).textContent=msg;$(id).className=error?"status error":"status";}
+function blankData(){return {morning:defaultMorning.slice(),morningDone:[],evening:defaultEvening.slice(),eveningDone:[],exercise:[],meals:[],reading:{},amPouch:false,pmPouch:false,weight:"",startWeight:"",reflection:"",calGoal:"2000",proteinGoal:"120"}}
+function newDay(){d=blankData();fill();renderAll();updateSummary();}
+function buildClient(key){if(!window.supabase||!window.supabase.createClient)throw new Error("The secure connection library did not load. Check your internet connection and refresh.");return window.supabase.createClient(SUPABASE_URL,key)}
+function showSignedOut(){ $("loginCard").classList.remove("hidden");$("appArea").classList.add("hidden");$("signinArea").classList.remove("hidden");$("setupArea").classList.add("hidden");}
+async function connectKey(){const key=$("publishableKey").value.trim();if(!key){setStatus("authStatus","Please paste the Supabase publishable key.",true);return}if(key.startsWith("sb_secret_")||key.toLowerCase().includes("service_role")){setStatus("authStatus","That looks like a secret key. Use the publishable key instead.",true);return}try{supabaseClient=buildClient(key);localStorage.setItem(KEY_STORAGE,key);$("setupArea").classList.add("hidden");$("signinArea").classList.remove("hidden");setStatus("authStatus","Connection configured. Now sign in with the email and password you created in Supabase.");}catch(e){setStatus("authStatus",e.message,true)}}
+async function signIn(){const email=$("email").value.trim(),password=$("password").value;if(!supabaseClient){setStatus("authStatus","First connect using your Supabase publishable key.",true);return}if(!email||!password){setStatus("authStatus","Enter your email and password.",true);return} $("signInBtn").disabled=true;try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;await showApp();}catch(e){setStatus("authStatus",e.message||"Sign-in failed.",true)}finally{$("signInBtn").disabled=false}}
+async function showApp(){ $("loginCard").classList.add("hidden");$("appArea").classList.remove("hidden");$("signedInAs").textContent=currentUser?.email||"Signed in";$("entryDate").value=todayISO();await loadDate($("entryDate").value);await loadHistory();}
+async function signOut(){if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;$("appArea").classList.add("hidden");$("loginCard").classList.remove("hidden");$("signinArea").classList.remove("hidden");$("setupArea").classList.add("hidden");$("password").value="";setStatus("authStatus","You are signed out.");}
+function fill(){["weight","startWeight","reflection","calGoal","proteinGoal"].forEach(id=>{if($(id))$(id).value=d[id]??({"calGoal":"2000","proteinGoal":"120"}[id]||"")})}
+function syncFromInputs(){d.weight=$("weight").value;d.startWeight=$("startWeight").value;d.reflection=$("reflection").value;d.calGoal=$("calGoal").value;d.proteinGoal=$("proteinGoal").value;}
+function renderChecks(id,items,section){const box=$(id);box.innerHTML="";(d[section]||items).forEach((item,i)=>{if(section==="evening"&&item==="📖 Reading"){const reading=d.reading||{};const wrap=document.createElement("div");wrap.innerHTML='<div class="check" style="border-bottom:0;padding-bottom:6px"><input type="checkbox" data-section="evening" data-i="'+i+'" '+(d.eveningDone?.[i]?"checked":"")+'><span>📖 Reading</span></div><div style="padding:0 0 10px 33px"><label>What are you reading?</label><input type="text" data-reading="title" placeholder="Book, article, etc." value="'+escapeHtml(reading.title||"")+'"><label style="margin-top:9px">Minutes / pages (optional)</label><input style="max-width:160px" type="text" data-reading="amount" placeholder="e.g. 30 min or 20 pages" value="'+escapeHtml(reading.amount||"")+'"></div>';box.appendChild(wrap)}else{const label=document.createElement("label");label.className="check";label.innerHTML='<input type="checkbox" data-section="'+section+'" data-i="'+i+'" '+(d[section+"Done"]?.[i]?"checked":"")+'><span>'+escapeHtml(item)+'</span>';box.appendChild(label)}});box.querySelectorAll("input[data-section]").forEach(x=>x.onchange=()=>{d[x.dataset.section+"Done"]??=[];d[x.dataset.section+"Done"][Number(x.dataset.i)]=x.checked;updateSummary()});box.querySelectorAll("input[data-reading]").forEach(x=>x.oninput=()=>{d.reading??={};d.reading[x.dataset.reading]=x.value});}
+function renderMeds(){const box=$("pouchChecks");box.innerHTML="";[["AM Pouch","amPouch"],["PM Pouch","pmPouch"]].forEach(([label,key])=>{const div=document.createElement("label");div.className="check";div.innerHTML='<input type="checkbox" data-pouch="'+key+'" '+(d[key]?"checked":"")+'><span><strong>'+label+'</strong> — Pouch taken</span>';box.appendChild(div)});box.querySelectorAll("input").forEach(x=>x.onchange=()=>{d[x.dataset.pouch]=x.checked;updateSummary()})}
+function renderExercise(){const box=$("exerciseChecks");box.innerHTML="";exercises.forEach((name,i)=>{const e=d.exercise?.[i]||{};const div=document.createElement("div");div.innerHTML='<div class="check" style="border-bottom:0;padding-bottom:6px"><input type="checkbox" data-ex="'+i+'" '+(e.done?"checked":"")+'><span style="flex:1">'+name+'</span></div><div style="padding:0 0 10px 33px"><label>Minutes spent</label><input style="max-width:140px" type="number" min="0" step="1" placeholder="Enter minutes" data-min="'+i+'" value="'+escapeHtml(e.min||"")+'"></div>';box.appendChild(div)});box.querySelectorAll("[data-ex]").forEach(x=>x.onchange=()=>{d.exercise??=[];d.exercise[Number(x.dataset.ex)]??={};d.exercise[Number(x.dataset.ex)].done=x.checked;updateSummary()});box.querySelectorAll("[data-min]").forEach(x=>x.oninput=()=>{d.exercise??=[];d.exercise[Number(x.dataset.min)]??={};d.exercise[Number(x.dataset.min)].min=x.value;updateSummary()})}
+function renderMeals(){const box=$("meals");box.innerHTML="";meals.forEach((name,i)=>{const m=d.meals?.[i]||{};const div=document.createElement("div");div.className="meal";div.innerHTML='<h3>'+name+'</h3><div class="grid"><div class="full"><label>What did you eat?</label><input data-meal="'+i+'" data-field="food" value="'+escapeHtml(m.food||"")+'" placeholder="Optional description"></div><div><label>Calories</label><input type="number" min="0" data-meal="'+i+'" data-field="cal" value="'+escapeHtml(m.cal||"")+'" placeholder="0"></div><div><label>Protein (g)</label><input type="number" min="0" data-meal="'+i+'" data-field="protein" value="'+escapeHtml(m.protein||"")+'" placeholder="0"></div></div>';box.appendChild(div)});box.querySelectorAll("input").forEach(x=>x.oninput=()=>{d.meals??=[];d.meals[Number(x.dataset.meal)]??={};d.meals[Number(x.dataset.meal)][x.dataset.field]=x.value;updateSummary()})}
+function renderAll(){renderChecks("morningChecks",defaultMorning,"morning");renderChecks("eveningChecks",defaultEvening,"evening");renderMeds();renderExercise();renderMeals()}
+function updateSummary(){let done=0,total=0;["morningDone","eveningDone"].forEach(s=>(d[s]||[]).forEach(v=>{total++;if(v)done++}));["amPouch","pmPouch"].forEach(s=>{total++;if(d[s])done++});exercises.forEach((_,i)=>{total++;if(d.exercise?.[i]?.done)done++});$("completion").textContent=total?Math.round(done/total*100)+"%":"0%";let ex=0;(d.exercise||[]).forEach(e=>{if(e.done)ex+=Number(e.min)||0});$("exerciseTotal").textContent=ex+" min";let cal=0,prot=0;(d.meals||[]).forEach(m=>{cal+=Number(m.cal)||0;prot+=Number(m.protein)||0});$("calTotal").textContent=cal.toLocaleString();$("proteinTotal").textContent=Math.round(prot)+" g";const w=Number(d.weight),s=Number(d.startWeight);$("weightLoss").innerHTML=w&&s?'<div class="stat"><b>'+((s-w).toFixed(1))+' lb</b><small>'+((s-w)>=0?"Weight lost to date":"Above starting weight")+'</small></div>':'<div class="tiny">Enter your starting weight to calculate weight lost to date.</div>'; }
+async function loadDate(date){if(!supabaseClient||!currentUser)return;setStatus("cloudStatus","Loading "+date+"…");try{const {data,error}=await supabaseClient.from("daily_checkins").select("data").eq("user_id",currentUser.id).eq("checkin_date",date).maybeSingle();if(error)throw error;d=data?.data?{...blankData(),...data.data}:blankData();fill();renderAll();updateSummary();setStatus("cloudStatus",data?"Loaded saved check-in for "+date+".":"No saved check-in for "+date+" yet. You can start a new one.");}catch(e){setStatus("cloudStatus","Could not load this date: "+(e.message||e),true)}}
+async function saveDate(){if(!supabaseClient||!currentUser)return;syncFromInputs();const date=$("entryDate").value;if(!date){setStatus("saveStatus","Choose a date first.",true);return}$("saveBtn").disabled=true;setStatus("saveStatus","Saving securely to your account…");try{const payload={user_id:currentUser.id,checkin_date:date,data:d,updated_at:new Date().toISOString()};const {error}=await supabaseClient.from("daily_checkins").upsert(payload,{onConflict:"user_id,checkin_date"});if(error)throw error;setStatus("saveStatus","Saved successfully for "+date+".");await loadHistory();}catch(e){setStatus("saveStatus","Save failed: "+(e.message||e),true)}finally{$("saveBtn").disabled=false}}
+async function loadHistory(){if(!supabaseClient||!currentUser)return;try{const {data,error}=await supabaseClient.from("daily_checkins").select("checkin_date,updated_at").eq("user_id",currentUser.id).order("checkin_date",{ascending:false}).limit(60);if(error)throw error;$("historyCount").textContent=(data||[]).length;const box=$("historyList");if(!data?.length){box.textContent="No saved check-ins yet. Save your first day to start your history.";return}box.innerHTML="";data.forEach(row=>{const b=document.createElement("button");b.className="secondary";b.style.margin="3px";b.textContent=row.checkin_date;b.onclick=()=>{$("entryDate").value=row.checkin_date;loadDate(row.checkin_date);window.scrollTo({top:0,behavior:"smooth"})};box.appendChild(b)})}catch(e){$("historyList").textContent="Could not load history: "+(e.message||e)}}
+function resetChecks(){if(!confirm("Reset today's checkboxes? Your weight, meals, reading notes, and reflection will remain."))return;d.morningDone=[];d.eveningDone=[];d.amPouch=false;d.pmPouch=false;(d.exercise||[]).forEach(e=>e.done=false);renderAll();updateSummary()}
+$("connectBtn").onclick=connectKey;$("signInBtn").onclick=signIn;$("changeKeyBtn").onclick=()=>{$("signinArea").classList.add("hidden");$("setupArea").classList.remove("hidden");$("publishableKey").value="";localStorage.removeItem(KEY_STORAGE);supabaseClient=null};$("signOutBtn").onclick=signOut;$("saveBtn").onclick=saveDate;$("loadBtn").onclick=()=>loadDate($("entryDate").value);$("historyBtn").onclick=loadHistory;$("resetBtn").onclick=resetChecks;
+$("today").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});$("entryDate").value=todayISO();
+const savedKey=localStorage.getItem(KEY_STORAGE);if(savedKey){$("publishableKey").value=savedKey;try{supabaseClient=buildClient(savedKey);$("setupArea").classList.add("hidden");$("signinArea").classList.remove("hidden")}catch(e){setStatus("authStatus",e.message,true)}}
+(async()=>{if(supabaseClient){const {data}=await supabaseClient.auth.getSession();if(data?.session){currentUser=data.session.user;await showApp()}}})();
+</script>
+</body></html>
